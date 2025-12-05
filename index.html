@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carris Live - Real-time Bus Tracking</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .info-panel h2 {
+            font-size: 18px;
+            margin: 0;
+            color: #333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-panel h2 .icon {
+            font-size: 22px;
+        }
+
+        .current-time {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+            padding-left: 20px;
+            border-left: 2px solid #e0e0e0;
+            min-width: 80px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .info-panel .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .info-panel .label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-panel .value {
+            font-weight: 600;
+            color: #007bff;
+            min-width: fit-content;
+        }
+        
+        .info-panel .stat:has(#last-update) .value {
+            min-width: 70px;
+            display: inline-block;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-connected {
+            background-color: #28a745;
+        }
+
+        /* Dynamic Marker Scaling via CSS */
+        .bus-marker-with-label {
+            transition: transform 0.2s ease-out;
+            will-change: transform;
+            transform-origin: bottom center; /* Anchor is at the bottom */
+        }
+
+        /* Zoom Level 16+ (Default/Base Size) */
+        /* No transform needed */
+
+        /* Zoom 14-15 */
+        .map-zoom-14 .bus-marker-with-label, .map-zoom-15 .bus-marker-with-label { transform: scale(0.85); }
+
+        /* Zoom 12-13 */
+        .map-zoom-12 .bus-marker-with-label, .map-zoom-13 .bus-marker-with-label { transform: scale(0.7); }
+
+        /* Zoom < 12 */
+        .map-zoom-low .bus-marker-with-label { transform: scale(0.5); }
+
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-left: 0;
+        }
+
+        .filter-section > *:not(:last-child) {
+            margin-right: 10px;
+        }
+
+        .filter-section input {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 150px;
+        }
+
+        .filter-section button {
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .filter-section button:hover {
+            background: #e0e0e0;
+        }
+
+        .stops-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .stops-toggle input[type="checkbox"] {
+            cursor: pointer;
+            margin: 0 4px 0 0;
+        }
+
+        .stops-toggle span {
+            display: none;
+        }
+
+        .bus-tooltip {
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .bus-tooltip .label {
+            font-weight: 600;
+            color: #333;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-right: 4px;
+        }
+
+        .bus-tooltip .value {
+            color: #007bff;
+            font-size: 12px;
+        }
+
+        .bus-tooltip div {
+            margin: 3px 0;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 6px;
+        }
+
+        .bus-marker-with-label {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        /* User location marker */
+        .user-location-marker {
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+        }
+
+        .user-location-accuracy {
+            background: rgba(0, 123, 255, 0.1);
+            border: 2px solid rgba(0, 123, 255, 0.3);
+        }
+
+        /* Move Leaflet zoom controls to the right side below the top bar */
+        .leaflet-top.leaflet-left {
+            left: auto !important;
+            right: 10px;
+            top: 60px;
+        }
+
+        .detail-panel {
+            position: absolute;
+            top: 60px;
+            left: -350px;
+            width: 350px;
+            height: calc(100% - 60px);
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            z-index: 999;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .detail-panel.open {
+            left: 0;
+        }
+
+        .detail-panel .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f0f0f0;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-panel .close-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .detail-panel h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            padding-right: 40px;
+        }
+
+        .detail-panel .detail-row {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .detail-panel .detail-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .detail-panel .detail-value {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* Language selector styles */
+        .language-selector {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .language-selector:hover {
+            border-color: #007bff;
+        }
+
+        /* Info icon styles */
+        .info-icon {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            font-size: 24px;
+            margin-left: auto;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .info-icon:hover {
+            opacity: 1;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .modal-body {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .modal-body p {
+            margin: 0 0 15px 0;
+        }
+
+        .modal-body p:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #f0f0f0;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #e0e0e0;
+        }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            .info-panel {
+                padding: 6px 8px;
+                gap: 6px;
+                font-size: 11px;
+            }
+
+            .info-panel h2 {
+                font-size: 13px;
+                width: 100%;
+                margin-bottom: 3px;
+            }
+
+            .info-panel h2 .icon {
+                font-size: 14px;
+            }
+
+            .info-panel h2 span[data-i18n="beta"] {
+                font-size: 10px !important;
+                padding: 1px 6px !important;
+            }
+
+            .current-time {
+                padding-left: 8px;
+                font-size: 11px;
+                min-width: 65px;
+            }
+
+            .info-panel .stat {
+                font-size: 10px;
+                gap: 3px;
+            }
+
+            .info-panel .label {
+                font-size: 10px;
+            }
+
+            .info-panel .value {
+                font-size: 11px;
+            }
+
+            .filter-section {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-left: 0;
+            }
+
+            .filter-section > *:not(:last-child) {
+                margin-right: 0;
+            }
+
+            .filter-section input {
+                flex: 1.5;
+                min-width: 0;
+                font-size: 11px;
+                padding: 6px 8px;
+            }
+
+            .filter-section button {
+                padding: 6px 12px;
+                font-size: 11px;
+                flex: 0 0 auto;
+            }
+
+            .stops-toggle {
+                font-size: 11px;
+                flex: 0 0 auto;
+            }
+
+            .stops-toggle span {
+                display: none;
+            }
+
+            .language-selector {
+                font-size: 13px;
+                padding: 4px 6px;
+            }
+
+            .info-icon {
+                font-size: 18px;
+                margin-left: 0;
+            }
+
+            /* Hide zoom controls on mobile */
+            .leaflet-control-zoom {
+                display: none;
+            }
+
+            /* Locate button for mobile */
+            .locate-button {
+                display: block !important;
+                position: absolute;
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                background: rgba(255, 255, 255, 0.7);
+                border: 2px solid rgba(0, 123, 255, 0.4);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                z-index: 1000;
+                transition: all 0.3s ease;
+            }
+
+            .locate-button:active {
+                background: rgba(0, 123, 255, 0.2);
+                transform: scale(0.95);
+            }
+
+            .locate-button svg {
+                width: 28px;
+                height: 28px;
+            }
+
+            .detail-panel {
+                width: 100%;
+                height: auto;
+                max-height: 30vh;
+                left: 0;
+                right: 0;
+                top: auto;
+                bottom: -100%;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+                transition: bottom 0.3s ease;
+                border-radius: 12px 12px 0 0;
+                padding: 12px;
+            }
+
+            .detail-panel.open {
+                bottom: 0;
+            }
+
+            .detail-panel .close-btn {
+                top: 6px;
+                right: 6px;
+                width: 24px;
+                height: 24px;
+                font-size: 14px;
+            }
+
+            .detail-panel h2 {
+                font-size: 14px;
+                margin-bottom: 8px;
+                padding-right: 30px;
+            }
+
+            .detail-panel .detail-row {
+                margin-bottom: 8px;
+                padding-bottom: 8px;
+            }
+
+            .detail-panel .detail-label {
+                font-size: 9px;
+                margin-bottom: 2px;
+            }
+
+            .detail-panel .detail-value {
+                font-size: 12px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .modal-header h3 {
+                font-size: 18px;
+            }
+
+            .modal-body {
+                font-size: 13px;
+            }
+
+            /* Hide some stats on very small screens */
+            @media (max-width: 480px) {
+                .info-panel .stat:has(#last-update) {
+                    display: none;
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="detail-panel" id="detail-panel">
+        <button class="close-btn" id="close-detail-btn">×</button>
+        <div id="detail-content"></div>
+    </div>
+    <div id="map"></div>
+    <button class="locate-button" id="locate-button" style="display: none;" title="Center on my location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+    </button>
+    <div class="info-panel">
+        <h2><span class="icon">🚌</span><span data-i18n="title">Carris Live</span> <span style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-left: 8px;" data-i18n="beta">BETA</span></h2>
+        <div class="current-time" id="current-time">--:--:--</div>
+        <div class="stat">
+            <span class="label">Status:</span>
+            <span class="value">
+                <span class="status-indicator" id="status-indicator"></span>
+                <span id="connection-status">Connecting...</span>
+            </span>
+        </div>
+        <div class="stat">
+            <span class="label">Active Buses:</span>
+            <span class="value" id="bus-count">0</span>
+        </div>
+        <div class="stat">
+            <span class="label" data-i18n="liveUsers">Live Users:</span>
+            <span class="value" id="user-count">-</span>
+        </div>
+        <div class="stat">
+            <span class="label">Last Update:</span>
+            <span class="value" id="last-update">-</span>
+        </div>
+        <div class="filter-section">
+            <input type="text" id="route-filter" data-i18n-placeholder="routeFilterPlaceholder" placeholder="Filter by route (e.g., 728, 15E)">
+            <button id="clear-filter" data-i18n="clearFilter">Clear</button>
+            <label class="stops-toggle">
+                <input type="checkbox" id="toggle-stops" checked>
+                <span data-i18n="showStops">Show Stops</span>
+            </label>
+            <select id="language-selector" class="language-selector">
+                <option value="en">🇬🇧 EN</option>
+                <option value="pt" selected>🇵🇹 PT</option>
+            </select>
+            <div class="info-icon" id="info-icon" data-i18n-title="infoIconTitle" title="Information">ⓘ</div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div class="modal-overlay" id="info-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="modal-close">×</button>
+            <div class="modal-header">
+                <span style="font-size: 24px;">ℹ️</span>
+                <h3 data-i18n="infoModalTitle">Information</h3>
+            </div>
+            <div class="modal-body">
+                <p data-i18n="infoModalText1">This site is not related to Carris, Companhia de Carris de Ferro de Lisboa, EM, SA, and is not their responsibility.</p>
+                <p data-i18n="infoModalText2">The data used on the site is obtained from public APIs provided by Carris.</p>
+                <p><strong data-i18n="infoModalContact">For any questions contact:</strong><br>
+                <a href="mailto:info@carris.live" style="color: #007bff; text-decoration: none;">info@carris.live</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

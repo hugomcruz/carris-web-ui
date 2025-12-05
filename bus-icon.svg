@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1"/>
+      <feOffset dx="0" dy="1" result="offsetblur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.3"/>
+      <feComposite in2="offsetblur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <!-- Bus body -->
+    <rect x="4" y="6" width="16" height="12" rx="2" fill="#FF6B35" stroke="#333" stroke-width="0.5"/>
+    
+    <!-- Windows -->
+    <rect x="5.5" y="8" width="4" height="3.5" rx="0.5" fill="#87CEEB" stroke="#333" stroke-width="0.3"/>
+    <rect x="10.5" y="8" width="4" height="3.5" rx="0.5" fill="#87CEEB" stroke="#333" stroke-width="0.3"/>
+    <rect x="15.5" y="8" width="3" height="3.5" rx="0.5" fill="#87CEEB" stroke="#333" stroke-width="0.3"/>
+    
+    <!-- Bottom section -->
+    <rect x="5" y="13" width="14" height="3" fill="#FF8C61"/>
+    
+    <!-- Wheels -->
+    <circle cx="7" cy="18.5" r="1.5" fill="#333" stroke="#666" stroke-width="0.3"/>
+    <circle cx="17" cy="18.5" r="1.5" fill="#333" stroke="#666" stroke-width="0.3"/>
+    <circle cx="7" cy="18.5" r="0.7" fill="#888"/>
+    <circle cx="17" cy="18.5" r="0.7" fill="#888"/>
+    
+    <!-- Front grille -->
+    <rect x="5.5" y="13.5" width="2" height="1.5" rx="0.3" fill="#FFD700" stroke="#333" stroke-width="0.2"/>
+    
+    <!-- Door lines -->
+    <line x1="9.5" y1="13" x2="9.5" y2="16" stroke="#333" stroke-width="0.4"/>
+    <line x1="11.5" y1="13" x2="11.5" y2="16" stroke="#333" stroke-width="0.4"/>
+    
+    <!-- Route number display -->
+    <rect x="16" y="13.8" width="2.5" height="1.5" rx="0.3" fill="#FFF" stroke="#333" stroke-width="0.2"/>
+  </g>
+</svg>

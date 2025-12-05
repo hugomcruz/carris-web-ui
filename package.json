@@ -1,0 +1,9 @@
+{
+  "name": "carris-frontend",
+  "version": "1.0.0",
+  "description": "Carris Live Frontend - Real-time bus tracking web interface",
+  "scripts": {
+    "dev": "python3 -m http.server 3000",
+    "start": "python3 -m http.server 3000"
+  }
+}
