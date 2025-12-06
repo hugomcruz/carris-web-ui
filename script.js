@@ -96,9 +96,12 @@ let userLocationCircle = null;
 let watchId = null;
 
 // Backend API URL configuration
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? 'http://localhost:8000' 
-    : `${window.location.protocol}//${window.location.hostname}:8000`;
+// Use injected config from container, or fallback to auto-detection
+const API_URL = (window.APP_CONFIG && window.APP_CONFIG.API_URL) 
+    ? window.APP_CONFIG.API_URL
+    : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:8000' 
+        : `${window.location.protocol}//${window.location.hostname}:8000`);
 
 // Socket.io connection
 const socket = io(API_URL);
