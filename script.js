@@ -331,18 +331,18 @@ function createBusMarkerWithLabel(route, isTram = false, bearing = 0) {
     const scale = 1.0;
     
     const iconUrl = isTram ? 'tram-icon.svg' : 'bus-icon.svg';
-    const baseIconWidth = isTram ? 32 : 32;
-    const baseIconHeight = isTram ? 44 : 40;
+    const baseIconWidth = 38.4;
+    const baseIconHeight = 52.8;
     
     // Fixed dimensions based on scale 1.0
     const iconWidth = baseIconWidth;
     const iconHeight = baseIconHeight;
-    const iconAnchorX = 16;
-    const iconAnchorY = isTram ? 22 : 20;
-    const popupAnchorY = isTram ? -22 : -20;
-    const labelOffset = -16;
-    const fontSize = 10;
-    const totalHeight = isTram ? 60 : 56;
+    const iconAnchorX = 19.2;
+    const iconAnchorY = 26.4;
+    const popupAnchorY = -26.4;
+    const labelOffset = -19;
+    const fontSize = 11;
+    const totalHeight = 72;
     
     // Convert bearing to rotation (bearing is 0° = North, 90° = East, 180° = South, 270° = West)
     const rotation = (parseFloat(bearing) || 0);
