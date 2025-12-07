@@ -90,6 +90,11 @@ let filteredRouteShapes = null;
 // Track last update time
 let lastUpdateTime = null;
 
+// Track time drift for live counter
+let timeDriftInterval = null;
+let currentVehicleTimestamp = null;
+let currentServerTime = null;
+
 // User location tracking
 let userLocationMarker = null;
 let userLocationCircle = null;
@@ -118,6 +123,12 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 
 // Add click handler to map to reset everything
 map.on('click', () => {
+    // Clear time drift interval
+    if (timeDriftInterval) {
+        clearInterval(timeDriftInterval);
+        timeDriftInterval = null;
+    }
+    
     // Show all buses if they were hidden
     if (busesHidden) {
         Object.keys(markers).forEach(id => {
@@ -578,24 +589,17 @@ function updateVehicles(vehicles) {
                     const detailsResponse = await fetch(`${API_URL}/api/vehicles/${vehicle.id}`);
                     const fullVehicleData = await detailsResponse.json();
                     
-                    // Calculate time drift using server time as reference
-                    let timeDrift = '';
+                    // Store timestamps for live drift counter
                     if (fullVehicleData.ts && fullVehicleData.st) {
-                        const vehicleTimestamp = parseInt(fullVehicleData.ts);
-                        const serverTime = parseInt(fullVehicleData.st);
-                        const driftSeconds = Math.abs(serverTime - vehicleTimestamp);
-                        
-                        if (driftSeconds < 60) {
-                            timeDrift = `${Math.round(driftSeconds)}s`;
-                        } else if (driftSeconds < 3600) {
-                            timeDrift = `${Math.round(driftSeconds / 60)}m`;
-                        } else {
-                            timeDrift = `${Math.round(driftSeconds / 3600)}h`;
-                        }
+                        currentVehicleTimestamp = parseInt(fullVehicleData.ts);
+                        currentServerTime = parseInt(fullVehicleData.st);
+                    } else {
+                        currentVehicleTimestamp = null;
+                        currentServerTime = null;
                     }
                     
                     // Show detail panel with full vehicle information
-                    showVehicleDetails(fullVehicleData, isTram, timeDrift);
+                    showVehicleDetails(fullVehicleData, isTram);
                     
                     if (fullVehicleData.tid) {
                         // Remove previous route shape if exists
@@ -741,10 +745,16 @@ socket.on('userCount', (count) => {
 updateConnectionStatus(false);
 
 // Function to show vehicle details in sliding panel
-function showVehicleDetails(vehicle, isTram, timeDrift) {
+function showVehicleDetails(vehicle, isTram) {
     const vehicleType = isTram ? 'Tram' : 'Bus';
     const detailPanel = document.getElementById('detail-panel');
     const detailContent = document.getElementById('detail-content');
+    
+    // Clear any existing time drift interval
+    if (timeDriftInterval) {
+        clearInterval(timeDriftInterval);
+        timeDriftInterval = null;
+    }
     
     let html = `<h2>${t('detailPanelTitle')}: ${vehicleType} ${vehicle.id}</h2>`;
     
@@ -886,17 +896,48 @@ function showVehicleDetails(vehicle, isTram, timeDrift) {
         `;
     }
     
-    if (timeDrift) {
+    if (currentVehicleTimestamp && currentServerTime) {
         html += `
             <div class="detail-row">
                 <div class="detail-label">Time Drift</div>
-                <div class="detail-value">${timeDrift}</div>
+                <div class="detail-value" id="live-time-drift">-</div>
             </div>
         `;
     }
     
     detailContent.innerHTML = html;
     detailPanel.classList.add('open');
+    
+    // Start live time drift counter
+    if (currentVehicleTimestamp && currentServerTime) {
+        updateTimeDrift();
+        timeDriftInterval = setInterval(updateTimeDrift, 1000);
+    }
+}
+
+// Update live time drift counter
+function updateTimeDrift() {
+    const driftElement = document.getElementById('live-time-drift');
+    if (!driftElement || !currentVehicleTimestamp || !currentServerTime) return;
+    
+    // Calculate elapsed time since we got the data
+    const now = Math.floor(Date.now() / 1000);
+    const elapsedSinceReceived = now - currentServerTime;
+    
+    // Calculate current drift (vehicle timestamp vs current server time estimate)
+    const estimatedServerTime = currentServerTime + elapsedSinceReceived;
+    const driftSeconds = Math.abs(estimatedServerTime - currentVehicleTimestamp);
+    
+    let driftText = '';
+    if (driftSeconds < 60) {
+        driftText = `${Math.round(driftSeconds)}s`;
+    } else if (driftSeconds < 3600) {
+        driftText = `${Math.round(driftSeconds / 60)}m`;
+    } else {
+        driftText = `${Math.round(driftSeconds / 3600)}h`;
+    }
+    
+    driftElement.textContent = driftText;
 }
 
 // Update detail panel for selected bus
@@ -909,6 +950,12 @@ function updateDetailPanel(vehicle) {
 
 // Close detail panel
 document.getElementById('close-detail-btn').addEventListener('click', () => {
+    // Clear time drift interval
+    if (timeDriftInterval) {
+        clearInterval(timeDriftInterval);
+        timeDriftInterval = null;
+    }
+    
     // Close the panel
     document.getElementById('detail-panel').classList.remove('open');
     
