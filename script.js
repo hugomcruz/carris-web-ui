@@ -340,7 +340,7 @@ function createBusMarkerWithLabel(route, isTram = false, bearing = 0) {
     const iconAnchorX = 19.2;
     const iconAnchorY = 26.4;
     const popupAnchorY = -26.4;
-    const labelOffset = -19;
+    const labelOffset = -10;
     const fontSize = 11;
     const totalHeight = 72;
     
