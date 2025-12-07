@@ -557,6 +557,11 @@ function updateVehicles(vehicles) {
                 marker._currentRouteLabel = routeLabel;
                 marker._currentBearing = bearing;
             }
+            
+            // Update detail panel if this is the selected vehicle
+            if (vehicle.id === selectedBusId) {
+                updateDetailPanel(vehicle);
+            }
         } else {
             // Create new marker with route label and bearing
             const routeLabel = vehicle.rsn || 'N/A';
