@@ -349,7 +349,7 @@ function createBusMarkerWithLabel(route, isTram = false, bearing = 0) {
     
     return L.divIcon({
         html: `
-            <div style="text-align: center; position: relative; transform: rotate(${rotation}deg);">
+            <div style="text-align: center; position: relative;">
                 <div style="
                     font-size: ${fontSize}px;
                     font-weight: bold;
@@ -360,8 +360,9 @@ function createBusMarkerWithLabel(route, isTram = false, bearing = 0) {
                     left: 50%;
                     transform: translateX(-50%);
                     text-shadow: 0 0 3px black, 0 0 3px black, 0 0 3px black;
+                    z-index: 10;
                 ">${route}</div>
-                <img src="${iconUrl}" style="width: ${iconWidth}px; height: ${iconHeight}px; display: block;">
+                <img src="${iconUrl}" style="width: ${iconWidth}px; height: ${iconHeight}px; display: block; transform: rotate(${rotation}deg);">
             </div>
         `,
         className: 'bus-marker-with-label',
