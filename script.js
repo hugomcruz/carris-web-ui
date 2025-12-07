@@ -832,28 +832,61 @@ function showVehicleDetails(vehicle, isTram, timeDrift) {
     }
     
     if (vehicle.sst) {
+        const sstDate = new Date(parseInt(vehicle.sst) * 1000);
+        const sstFormatted = sstDate.toLocaleString('pt-PT', { 
+            timeZone: 'Europe/Lisbon',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).replace(',', '');
         html += `
             <div class="detail-row">
                 <div class="detail-label">Scheduled Start Time</div>
-                <div class="detail-value">${vehicle.sst}</div>
+                <div class="detail-value">${sstFormatted}</div>
             </div>
         `;
     }
     
     if (vehicle.set) {
+        const setDate = new Date(parseInt(vehicle.set) * 1000);
+        const setFormatted = setDate.toLocaleString('pt-PT', { 
+            timeZone: 'Europe/Lisbon',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).replace(',', '');
         html += `
             <div class="detail-row">
                 <div class="detail-label">Scheduled End Time</div>
-                <div class="detail-value">${vehicle.set}</div>
+                <div class="detail-value">${setFormatted}</div>
             </div>
         `;
     }
     
     if (vehicle.ast) {
+        const astDate = new Date(parseInt(vehicle.ast) * 1000);
+        const astFormatted = astDate.toLocaleString('pt-PT', { 
+            timeZone: 'Europe/Lisbon',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).replace(',', '');
         html += `
             <div class="detail-row">
                 <div class="detail-label">Actual Start Time</div>
-                <div class="detail-value">${vehicle.ast}</div>
+                <div class="detail-value">${astFormatted}</div>
             </div>
         `;
     }
