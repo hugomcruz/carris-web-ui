@@ -941,11 +941,26 @@ function updateTimeDrift() {
 }
 
 // Update detail panel for selected bus
-function updateDetailPanel(vehicle) {
+// Update detail panel for selected bus
+async function updateDetailPanel(vehicle) {
     if (!selectedBusId || vehicle.id !== selectedBusId) return;
     
-    const isTram = vehicle.id.length === 3 && (!vehicle.lp || vehicle.lp === 'N/A' || vehicle.lp === '');
-    showVehicleDetails(vehicle, isTram, null);
+    try {
+        // Fetch fresh vehicle details to get updated timestamps
+        const detailsResponse = await fetch(`${API_URL}/api/vehicles/${vehicle.id}`);
+        const fullVehicleData = await detailsResponse.json();
+        
+        // Update timestamps for live drift counter
+        if (fullVehicleData.ts && fullVehicleData.st) {
+            currentVehicleTimestamp = parseInt(fullVehicleData.ts);
+            currentServerTime = parseInt(fullVehicleData.st);
+        }
+        
+        const isTram = vehicle.id.length === 3 && (!vehicle.lp || vehicle.lp === 'N/A' || vehicle.lp === '');
+        showVehicleDetails(fullVehicleData, isTram);
+    } catch (error) {
+        console.error('Error updating vehicle details:', error);
+    }
 }
 
 // Close detail panel
