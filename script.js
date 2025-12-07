@@ -331,30 +331,25 @@ function createBusMarkerWithLabel(route, isTram = false, bearing = 0) {
     const scale = 1.0;
     
     const iconUrl = isTram ? 'tram-icon.svg' : 'bus-icon.svg';
-    const baseIconWidth = isTram ? 96 : 32;
-    const baseIconHeight = isTram ? 48 : 32;
+    const baseIconWidth = isTram ? 32 : 32;
+    const baseIconHeight = isTram ? 44 : 40;
     
     // Fixed dimensions based on scale 1.0
     const iconWidth = baseIconWidth;
     const iconHeight = baseIconHeight;
-    const iconAnchorX = isTram ? 48 : 16;
-    const iconAnchorY = isTram ? 48 : 32;
-    const popupAnchorY = isTram ? -48 : -32;
+    const iconAnchorX = 16;
+    const iconAnchorY = isTram ? 22 : 20;
+    const popupAnchorY = isTram ? -22 : -20;
     const labelOffset = -16;
     const fontSize = 10;
-    const totalHeight = isTram ? 66 : 50;
+    const totalHeight = isTram ? 60 : 56;
     
     // Convert bearing to rotation (bearing is 0° = North, 90° = East, 180° = South, 270° = West)
-    // The SVG arrow points right (East = 90°), so subtract 90° to align with compass bearing
-    const rotation = (parseFloat(bearing) || 0) - 90;
-    
-    // Arrow positioned in the center of the icon with white color and shadow
-    const pointerStyle = `left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(${rotation}deg);`;
-    const arrowSvg = `<svg width="14" height="14" viewBox="0 0 16 16" style="display: block; filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.8));"><path d="M2 8 L12 8 L8 4 M12 8 L8 12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const rotation = (parseFloat(bearing) || 0);
     
     return L.divIcon({
         html: `
-            <div style="text-align: center; position: relative;">
+            <div style="text-align: center; position: relative; transform: rotate(${rotation}deg);">
                 <div style="
                     font-size: ${fontSize}px;
                     font-weight: bold;
@@ -367,7 +362,6 @@ function createBusMarkerWithLabel(route, isTram = false, bearing = 0) {
                     text-shadow: 0 0 3px black, 0 0 3px black, 0 0 3px black;
                 ">${route}</div>
                 <img src="${iconUrl}" style="width: ${iconWidth}px; height: ${iconHeight}px; display: block;">
-                <div style="position: absolute; ${pointerStyle}">${arrowSvg}</div>
             </div>
         `,
         className: 'bus-marker-with-label',
