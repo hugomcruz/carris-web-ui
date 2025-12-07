@@ -831,6 +831,33 @@ function showVehicleDetails(vehicle, isTram, timeDrift) {
         `;
     }
     
+    if (vehicle.sst) {
+        html += `
+            <div class="detail-row">
+                <div class="detail-label">Scheduled Start Time</div>
+                <div class="detail-value">${vehicle.sst}</div>
+            </div>
+        `;
+    }
+    
+    if (vehicle.set) {
+        html += `
+            <div class="detail-row">
+                <div class="detail-label">Scheduled End Time</div>
+                <div class="detail-value">${vehicle.set}</div>
+            </div>
+        `;
+    }
+    
+    if (vehicle.ast) {
+        html += `
+            <div class="detail-row">
+                <div class="detail-label">Actual Start Time</div>
+                <div class="detail-value">${vehicle.ast}</div>
+            </div>
+        `;
+    }
+    
     if (timeDrift) {
         html += `
             <div class="detail-row">
