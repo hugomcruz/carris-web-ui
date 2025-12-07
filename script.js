@@ -578,12 +578,12 @@ function updateVehicles(vehicles) {
                     const detailsResponse = await fetch(`${API_URL}/api/vehicles/${vehicle.id}`);
                     const fullVehicleData = await detailsResponse.json();
                     
-                    // Calculate time drift
+                    // Calculate time drift using server time as reference
                     let timeDrift = '';
-                    if (fullVehicleData.ts && fullVehicleData.lu) {
-                        const timestamp = parseInt(fullVehicleData.ts);
-                        const lastUpdated = new Date(fullVehicleData.lu).getTime() / 1000;
-                        const driftSeconds = Math.abs(lastUpdated - timestamp);
+                    if (fullVehicleData.ts && fullVehicleData.st) {
+                        const vehicleTimestamp = parseInt(fullVehicleData.ts);
+                        const serverTime = parseInt(fullVehicleData.st);
+                        const driftSeconds = Math.abs(serverTime - vehicleTimestamp);
                         
                         if (driftSeconds < 60) {
                             timeDrift = `${Math.round(driftSeconds)}s`;
