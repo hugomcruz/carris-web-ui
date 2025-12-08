@@ -45,7 +45,13 @@ function applyTranslations() {
     if (selectedBusId && allVehicles.length > 0) {
         const vehicle = allVehicles.find(v => v.id === selectedBusId);
         if (vehicle) {
-            updateDetailPanel(vehicle);
+            // Just refresh the display without fetching new data
+            const isTram = vehicle.id.length === 3 && (!vehicle.lp || vehicle.lp === 'N/A' || vehicle.lp === '');
+            const detailPanel = document.getElementById('detail-panel');
+            if (detailPanel.classList.contains('open')) {
+                // Panel is open, re-fetch to get fresh data with translations
+                updateDetailPanel(vehicle);
+            }
         }
     }
 }
@@ -90,6 +96,9 @@ let filteredRouteShapes = null;
 // Track last update time
 let lastUpdateTime = null;
 
+// Track last detail panel API call time for throttling
+let lastDetailPanelApiCall = 0;
+
 // Track time drift for live counter
 let timeDriftInterval = null;
 let currentVehicleTimestamp = null;
@@ -105,8 +114,8 @@ let watchId = null;
 const API_URL = (window.APP_CONFIG && window.APP_CONFIG.API_URL) 
     ? window.APP_CONFIG.API_URL
     : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:8000' 
-        : `${window.location.protocol}//${window.location.hostname}:8000`);
+        ? 'http://localhost:8004' 
+        : `${window.location.protocol}//${window.location.hostname}:8004`);
 
 // Socket.io connection
 const socket = io(API_URL);
@@ -320,6 +329,15 @@ function handleZoomEnd() {
             layer.setRadius(newRadius);
         }
     });
+    
+    // Update all vehicle icons with new scale based on zoom level
+    Object.keys(markers).forEach(vehicleId => {
+        const marker = markers[vehicleId];
+        const routeLabel = marker._currentRouteLabel || 'N/A';
+        const bearing = marker._currentBearing || '0';
+        const isTram = vehicleId.length === 3;
+        marker.setIcon(createBusMarkerWithLabel(routeLabel, isTram, bearing));
+    });
 }
 
 // Add zoom event listener
@@ -338,22 +356,33 @@ const busIcon = L.icon({
 
 // Create a custom div icon with route label (Fixed size, scaled via CSS)
 function createBusMarkerWithLabel(route, isTram = false, bearing = 0) {
-    // Base scale is always 1.0, CSS handles the visual scaling
-    const scale = 1.0;
+    // Get current zoom level and calculate scale
+    const zoom = map.getZoom();
+    let scale = 1.0;
+    
+    // Scale down icons when zoomed out
+    if (zoom < 11) {
+        scale = 0.5; // 50% size for very zoomed out
+    } else if (zoom < 13) {
+        scale = 0.7; // 70% size for zoomed out
+    } else if (zoom < 15) {
+        scale = 0.85; // 85% size for medium zoom
+    }
+    // else scale = 1.0 for zoom >= 15 (full size)
     
     const iconUrl = isTram ? 'tram-icon.svg' : 'bus-icon.svg';
     const baseIconWidth = 38.4;
     const baseIconHeight = 52.8;
     
-    // Fixed dimensions based on scale 1.0
-    const iconWidth = baseIconWidth;
-    const iconHeight = baseIconHeight;
-    const iconAnchorX = 19.2;
-    const iconAnchorY = 26.4;
-    const popupAnchorY = -26.4;
-    const labelOffset = -10;
-    const fontSize = 11;
-    const totalHeight = 72;
+    // Apply scale to dimensions
+    const iconWidth = baseIconWidth * scale;
+    const iconHeight = baseIconHeight * scale;
+    const iconAnchorX = 19.2 * scale;
+    const iconAnchorY = 26.4 * scale;
+    const popupAnchorY = -26.4 * scale;
+    const labelOffset = -10 * scale;
+    const fontSize = 11 * scale;
+    const totalHeight = 72 * scale;
     
     // Convert bearing to rotation (bearing is 0° = North, 90° = East, 180° = South, 270° = West)
     const rotation = (parseFloat(bearing) || 0);
@@ -497,26 +526,32 @@ function updateVehicles(vehicles) {
     lastUpdateTime = Date.now();
     updateLastUpdateDisplay();
     
-    // Store all vehicles for filtering
-    allVehicles = vehicles;
+    // Filter out inactive vehicles (st === 0)
+    const activeVehicles = vehicles.filter(v => v.st === 1 || v.st === undefined);
+    
+    // Store all active vehicles for filtering
+    allVehicles = activeVehicles;
     
     // Apply filter if active
-    let filteredVehicles = vehicles;
+    let filteredVehicles = activeVehicles;
     if (activeRouteFilter) {
         const filterLower = activeRouteFilter.toLowerCase().trim();
-        filteredVehicles = vehicles.filter(v => {
+        filteredVehicles = activeVehicles.filter(v => {
             const routeShortName = (v.rsn || '').toLowerCase();
             return routeShortName.includes(filterLower);
         });
     }
     
-    document.getElementById('bus-count').textContent = filteredVehicles.length + (activeRouteFilter ? ` (of ${vehicles.length})` : '');
+    document.getElementById('bus-count').textContent = filteredVehicles.length + (activeRouteFilter ? ` (of ${activeVehicles.length})` : '');
 
     // Get current map bounds with padding to avoid popping at edges
     const bounds = map.getBounds().pad(0.1);
     
-    // Track which markers should be on the map
+    // Track which markers should be on the map (within bounds)
     const visibleMarkerIds = new Set();
+    
+    // Track all active vehicle IDs from the incoming data
+    const activeVehicleIds = new Set(activeVehicles.map(v => v.id));
 
     filteredVehicles.forEach(vehicle => {
         const lat = vehicle.lat;
@@ -556,11 +591,6 @@ function updateVehicles(vehicles) {
                 marker.setIcon(createBusMarkerWithLabel(routeLabel, isTram, bearing));
                 marker._currentRouteLabel = routeLabel;
                 marker._currentBearing = bearing;
-            }
-            
-            // Update detail panel if this is the selected vehicle
-            if (vehicle.id === selectedBusId) {
-                updateDetailPanel(vehicle);
             }
         } else {
             // Create new marker with route label and bearing
@@ -702,13 +732,66 @@ function updateVehicles(vehicles) {
         }
     });
 
-    // Remove markers that are no longer visible (out of bounds) or no longer active
+    // Remove markers that are no longer active in the data
+    // Keep markers that are active but out of bounds (viewport pruning)
     Object.keys(markers).forEach(vehicleId => {
-        if (!visibleMarkerIds.has(vehicleId)) {
+        const isActive = activeVehicleIds.has(vehicleId);
+        const isInView = visibleMarkerIds.has(vehicleId);
+        
+        // Remove if not active at all, OR if active but out of view (viewport pruning)
+        if (!isActive || (isActive && !isInView)) {
+            // If this is the selected bus, reset the UI
+            if (vehicleId === selectedBusId) {
+                document.getElementById('detail-panel').classList.remove('open');
+                selectedBusId = null;
+                selectedBusShapePoints = null;
+                busesHidden = false;
+                
+                // Clear time drift interval
+                if (timeDriftInterval) {
+                    clearInterval(timeDriftInterval);
+                    timeDriftInterval = null;
+                }
+                
+                // Remove route shapes
+                if (currentRouteShape) {
+                    map.removeLayer(currentRouteShape);
+                    currentRouteShape = null;
+                }
+                if (currentVehicleTrack) {
+                    map.removeLayer(currentVehicleTrack);
+                    currentVehicleTrack = null;
+                }
+                if (currentStopShapes) {
+                    map.removeLayer(currentStopShapes);
+                    currentStopShapes = null;
+                }
+                
+                // Show all stops again
+                stopMarkers.eachLayer(marker => {
+                    marker.setStyle({ opacity: 1, fillOpacity: 1 });
+                });
+                
+                // Show all remaining buses
+                Object.keys(markers).forEach(id => {
+                    if (markers[id] && id !== vehicleId) {
+                        markers[id].setOpacity(1);
+                    }
+                });
+            }
+            
             map.removeLayer(markers[vehicleId]);
             delete markers[vehicleId];
         }
     });
+
+    // Update detail panel if a bus is selected - only once per update
+    if (selectedBusId) {
+        const selectedVehicle = activeVehicles.find(v => v.id === selectedBusId);
+        if (selectedVehicle) {
+            updateDetailPanel(selectedVehicle);
+        }
+    }
 
     // Auto-fit bounds only on first load when we have vehicles
     if (isFirstLoad && vehicles.length > 0) {
@@ -728,6 +811,7 @@ map.on('moveend', () => {
 // Socket event handlers
 socket.on('connect', () => {
     console.log('Connected to server');
+    console.log('Socket ID:', socket.id);
     updateConnectionStatus(true);
 });
 
@@ -742,9 +826,86 @@ socket.on('vehicles', (vehicles) => {
 });
 
 socket.on('userCount', (count) => {
-    console.log(`Active users: ${count}`);
+    console.log(`Active users event received: ${count}`);
     document.getElementById('user-count').textContent = count;
 });
+
+// Catch any socket errors
+socket.on('connect_error', (error) => {
+    console.error('Socket connection error:', error);
+});
+
+socket.on('error', (error) => {
+    console.error('Socket error:', error);
+});
+
+// Background cleanup - fetch active vehicles every 30 seconds
+async function cleanupInactiveVehicles() {
+    try {
+        const response = await fetch(`${API_URL}/api/vehicles`);
+        const activeVehicles = await response.json();
+        const activeVehicleIds = new Set(activeVehicles.map(v => v.id));
+        
+        // Remove markers for vehicles that are no longer active
+        let removedCount = 0;
+        Object.keys(markers).forEach(vehicleId => {
+            if (!activeVehicleIds.has(vehicleId)) {
+                // If this is the selected bus, close the detail panel and reset selection
+                if (vehicleId === selectedBusId) {
+                    document.getElementById('detail-panel').classList.remove('open');
+                    selectedBusId = null;
+                    selectedBusShapePoints = null;
+                    busesHidden = false;
+                    
+                    // Clear time drift interval
+                    if (timeDriftInterval) {
+                        clearInterval(timeDriftInterval);
+                        timeDriftInterval = null;
+                    }
+                    
+                    // Remove route shapes
+                    if (currentRouteShape) {
+                        map.removeLayer(currentRouteShape);
+                        currentRouteShape = null;
+                    }
+                    if (currentVehicleTrack) {
+                        map.removeLayer(currentVehicleTrack);
+                        currentVehicleTrack = null;
+                    }
+                    if (currentStopShapes) {
+                        map.removeLayer(currentStopShapes);
+                        currentStopShapes = null;
+                    }
+                    
+                    // Show all stops again
+                    stopMarkers.eachLayer(marker => {
+                        marker.setStyle({ opacity: 1, fillOpacity: 1 });
+                    });
+                    
+                    // Show all buses again
+                    Object.keys(markers).forEach(id => {
+                        if (markers[id]) {
+                            markers[id].setOpacity(1);
+                        }
+                    });
+                }
+                
+                map.removeLayer(markers[vehicleId]);
+                delete markers[vehicleId];
+                removedCount++;
+            }
+        });
+        
+        if (removedCount > 0) {
+            console.log(`Cleaned up ${removedCount} inactive vehicle(s)`);
+        }
+    } catch (error) {
+        console.error('Error cleaning up inactive vehicles:', error);
+    }
+}
+
+// Run cleanup every 30 seconds
+setInterval(cleanupInactiveVehicles, 30000);
 
 // Initial connection status
 updateConnectionStatus(false);
@@ -947,8 +1108,16 @@ function updateTimeDrift() {
 
 // Update detail panel for selected bus
 // Update detail panel for selected bus
+// Update detail panel for selected bus
 async function updateDetailPanel(vehicle) {
     if (!selectedBusId || vehicle.id !== selectedBusId) return;
+    
+    // Throttle API calls - only update every 2 seconds
+    const now = Date.now();
+    if (now - lastDetailPanelApiCall < 2000) {
+        return;
+    }
+    lastDetailPanelApiCall = now;
     
     try {
         // Fetch fresh vehicle details to get updated timestamps
