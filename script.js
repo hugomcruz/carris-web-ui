@@ -46,7 +46,7 @@ function applyTranslations() {
         const vehicle = allVehicles.find(v => v.id === selectedBusId);
         if (vehicle) {
             // Just refresh the display without fetching new data
-            const isTram = vehicle.id.length === 3 && (!vehicle.lp || vehicle.lp === 'N/A' || vehicle.lp === '');
+            const isTram = vehicle.id.length === 3 && (vehicle.id.startsWith('5') || vehicle.id.startsWith('6'));
             const detailPanel = document.getElementById('detail-panel');
             if (detailPanel.classList.contains('open')) {
                 // Panel is open, re-fetch to get fresh data with translations
@@ -564,8 +564,8 @@ function updateVehicles(vehicles) {
         
         visibleMarkerIds.add(vehicle.id);
         
-        // Determine if this is a tram (3-digit ID and no license plate)
-        const isTram = vehicle.id.length === 3 && (!vehicle.lp || vehicle.lp === 'N/A' || vehicle.lp === '');
+        // Determine if this is a tram (3-digit ID starting with 5 or 6)
+        const isTram = vehicle.id.length === 3 && (vehicle.id.startsWith('5') || vehicle.id.startsWith('6'));
 
         if (markers[vehicle.id]) {
             // Update existing marker position
@@ -1130,7 +1130,7 @@ async function updateDetailPanel(vehicle) {
             currentServerTime = parseInt(fullVehicleData.st);
         }
         
-        const isTram = vehicle.id.length === 3 && (!vehicle.lp || vehicle.lp === 'N/A' || vehicle.lp === '');
+        const isTram = vehicle.id.length === 3 && (vehicle.id.startsWith('5') || vehicle.id.startsWith('6'));
         showVehicleDetails(fullVehicleData, isTram);
     } catch (error) {
         console.error('Error updating vehicle details:', error);
