@@ -46,7 +46,8 @@ function applyTranslations() {
         const vehicle = allVehicles.find(v => v.id === selectedBusId);
         if (vehicle) {
             // Just refresh the display without fetching new data
-            const isTram = vehicle.id.length === 3 && (vehicle.id.startsWith('5') || vehicle.id.startsWith('6'));
+            const vehicleIdStr = String(vehicle.id);
+            const isTram = vehicleIdStr.length === 3 && (vehicleIdStr.startsWith('5') || vehicleIdStr.startsWith('6'));
             const detailPanel = document.getElementById('detail-panel');
             if (detailPanel.classList.contains('open')) {
                 // Panel is open, re-fetch to get fresh data with translations
@@ -335,7 +336,8 @@ function handleZoomEnd() {
         const marker = markers[vehicleId];
         const routeLabel = marker._currentRouteLabel || 'N/A';
         const bearing = marker._currentBearing || '0';
-        const isTram = vehicleId.length === 3;
+        const vehicleIdStr = String(vehicleId);
+        const isTram = vehicleIdStr.length === 3 && (vehicleIdStr.startsWith('5') || vehicleIdStr.startsWith('6'));
         marker.setIcon(createBusMarkerWithLabel(routeLabel, isTram, bearing));
     });
 }
@@ -565,7 +567,8 @@ function updateVehicles(vehicles) {
         visibleMarkerIds.add(vehicle.id);
         
         // Determine if this is a tram (3-digit ID starting with 5 or 6)
-        const isTram = vehicle.id.length === 3 && (vehicle.id.startsWith('5') || vehicle.id.startsWith('6'));
+        const vehicleIdStr = String(vehicle.id);
+        const isTram = vehicleIdStr.length === 3 && (vehicleIdStr.startsWith('5') || vehicleIdStr.startsWith('6'));
 
         if (markers[vehicle.id]) {
             // Update existing marker position
@@ -1130,7 +1133,8 @@ async function updateDetailPanel(vehicle) {
             currentServerTime = parseInt(fullVehicleData.st);
         }
         
-        const isTram = vehicle.id.length === 3 && (vehicle.id.startsWith('5') || vehicle.id.startsWith('6'));
+        const vehicleIdStr = String(vehicle.id);
+        const isTram = vehicleIdStr.length === 3 && (vehicleIdStr.startsWith('5') || vehicleIdStr.startsWith('6'));
         showVehicleDetails(fullVehicleData, isTram);
     } catch (error) {
         console.error('Error updating vehicle details:', error);
