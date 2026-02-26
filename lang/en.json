@@ -27,5 +27,11 @@
   "errorLoadingStops": "Error loading stops",
   "errorLoadingTrack": "Error loading track history",
   "errorLoadingShapes": "Error loading route shapes",
-  "noShapesFound": "No route shapes found"
+  "noShapesFound": "No route shapes found",
+  "stopId": "Stop ID",
+  "nextDepartures": "Next Departures",
+  "loadingSchedule": "Loading schedule...",
+  "noDepartures": "No upcoming departures",
+  "noScheduleData": "Schedule unavailable",
+  "now": "Now"
 }

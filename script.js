@@ -91,6 +91,10 @@ let selectedBusId = null;
 // Store shape points for selected bus
 let selectedBusShapePoints = null;
 
+// Track selected stop state for schedule panel
+let selectedStopId = null;
+let stopScheduleInterval = null;
+
 // Store filtered route shapes
 let filteredRouteShapes = null;
 
@@ -138,6 +142,13 @@ map.on('click', () => {
         clearInterval(timeDriftInterval);
         timeDriftInterval = null;
     }
+    
+    // Clear stop schedule interval
+    if (stopScheduleInterval) {
+        clearInterval(stopScheduleInterval);
+        stopScheduleInterval = null;
+    }
+    selectedStopId = null;
     
     // Show all buses if they were hidden
     if (busesHidden) {
@@ -217,8 +228,17 @@ async function loadBusStops() {
                 // Stop event from propagating to map
                 L.DomEvent.stopPropagation(e);
                 
-                // Close detail panel
-                document.getElementById('detail-panel').classList.remove('open');
+                // Clear any running stop schedule refresh
+                if (stopScheduleInterval) {
+                    clearInterval(stopScheduleInterval);
+                    stopScheduleInterval = null;
+                }
+                
+                // Clear time drift interval (deselect any vehicle)
+                if (timeDriftInterval) {
+                    clearInterval(timeDriftInterval);
+                    timeDriftInterval = null;
+                }
                 
                 try {
                     // Show all buses if they were hidden
@@ -239,16 +259,6 @@ async function loadBusStops() {
                     // Fetch stop details
                     const response = await fetch(`${API_URL}/api/stops/${stop.id}`);
                     const details = await response.json();
-                    
-                    let tooltipContent = `<div style="font-weight: bold;">${details.stop_name}</div>`;
-                    if (details.routes) {
-                        tooltipContent += `<div style="margin-top: 5px; font-size: 11px;">${t('tooltipRoutes')}: ${details.routes}</div>`;
-                    }
-                    
-                    marker.bindTooltip(tooltipContent, {
-                        permanent: false,
-                        direction: 'top'
-                    }).openTooltip();
                     
                     // Remove previous stop shapes if they exist
                     if (currentStopShapes) {
@@ -286,6 +296,10 @@ async function loadBusStops() {
                         currentStopShapes.addTo(map);
                         console.log(`Displayed ${shapes.length} route shapes for stop ${stop.id}`);
                     }
+                    
+                    // Open detail panel with stop info and schedule
+                    showStopPanel(stop, details);
+                    
                 } catch (error) {
                     console.error('Error fetching stop details:', error);
                 }
@@ -913,6 +927,95 @@ setInterval(cleanupInactiveVehicles, 30000);
 // Initial connection status
 updateConnectionStatus(false);
 
+// Show stop detail panel with name, routes and scheduled departures
+function showStopPanel(stop, details) {
+    const detailPanel = document.getElementById('detail-panel');
+    const detailContent = document.getElementById('detail-content');
+
+    selectedStopId = stop.id;
+
+    let html = `<h2>🚏 ${details.stop_name || stop.id}</h2>`;
+
+    html += `
+        <div class="detail-row">
+            <div class="detail-label">${t('stopId')}</div>
+            <div class="detail-value">${stop.id}</div>
+        </div>
+    `;
+
+    if (details.routes) {
+        html += `
+            <div class="detail-row">
+                <div class="detail-label">${t('tooltipRoutes')}</div>
+                <div class="detail-value">${details.routes}</div>
+            </div>
+        `;
+    }
+
+    html += `
+        <div class="detail-row">
+            <div class="detail-label">${t('nextDepartures')}</div>
+            <div id="stop-schedule-content">
+                <span class="schedule-loading">${t('loadingSchedule')}</span>
+            </div>
+        </div>
+    `;
+
+    detailContent.innerHTML = html;
+    detailPanel.classList.add('open');
+
+    // Fetch schedule immediately then refresh every 30 s
+    fetchStopSchedule(stop.id);
+    if (stopScheduleInterval) clearInterval(stopScheduleInterval);
+    stopScheduleInterval = setInterval(() => {
+        if (selectedStopId) fetchStopSchedule(selectedStopId);
+    }, 30000);
+}
+
+// Fetch and render next departures for a stop
+async function fetchStopSchedule(stopId) {
+    const scheduleContent = document.getElementById('stop-schedule-content');
+    if (!scheduleContent) return;
+
+    try {
+        const response = await fetch(`${API_URL}/api/stops/${stopId}/schedule`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const departures = await response.json();
+
+        if (!Array.isArray(departures) || departures.length === 0) {
+            scheduleContent.innerHTML = `<span class="schedule-empty">${t('noDepartures')}</span>`;
+            return;
+        }
+
+        let html = '<div class="stop-departures">';
+        departures.slice(0, 8).forEach(dep => {
+            const route = dep.route || dep.route_short_name || '';
+            const destination = dep.destination || dep.headsign || dep.trip_headsign || '';
+            let timeHtml = '';
+            if (dep.departure_in !== undefined && dep.departure_in !== null) {
+                const mins = parseInt(dep.departure_in);
+                timeHtml = `<span class="departure-countdown">${mins <= 0 ? t('now') : mins + ' min'}</span>`;
+            } else {
+                const timeStr = dep.departure_time || dep.time || '';
+                timeHtml = `<span class="departure-time">${timeStr}</span>`;
+            }
+            html += `
+                <div class="departure-row">
+                    <span class="departure-route">${route}</span>
+                    <span class="departure-destination">${destination}</span>
+                    ${timeHtml}
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        scheduleContent.innerHTML = html;
+    } catch (error) {
+        console.error('Error fetching stop schedule:', error);
+        scheduleContent.innerHTML = `<span class="schedule-empty">${t('noScheduleData')}</span>`;
+    }
+}
+
 // Function to show vehicle details in sliding panel
 function showVehicleDetails(vehicle, isTram) {
     const vehicleType = isTram ? 'Tram' : 'Bus';
@@ -1148,6 +1251,13 @@ document.getElementById('close-detail-btn').addEventListener('click', () => {
         clearInterval(timeDriftInterval);
         timeDriftInterval = null;
     }
+    
+    // Clear stop schedule interval
+    if (stopScheduleInterval) {
+        clearInterval(stopScheduleInterval);
+        stopScheduleInterval = null;
+    }
+    selectedStopId = null;
     
     // Close the panel
     document.getElementById('detail-panel').classList.remove('open');

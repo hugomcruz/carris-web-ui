@@ -592,6 +592,71 @@
                 }
             }
         }
+
+        /* Stop departure board */
+        .stop-departures {
+            display: flex;
+            flex-direction: column;
+            margin-top: 4px;
+        }
+
+        .departure-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .departure-row:last-child {
+            border-bottom: none;
+        }
+
+        .departure-route {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 44px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .departure-destination {
+            flex: 1;
+            font-size: 13px;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .departure-countdown {
+            font-size: 13px;
+            font-weight: 600;
+            color: #28a745;
+            flex-shrink: 0;
+            min-width: 48px;
+            text-align: right;
+        }
+
+        .departure-time {
+            font-size: 13px;
+            font-weight: 600;
+            color: #007bff;
+            flex-shrink: 0;
+            min-width: 48px;
+            text-align: right;
+        }
+
+        .schedule-loading,
+        .schedule-empty {
+            font-size: 13px;
+            color: #999;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>

@@ -27,5 +27,11 @@
   "errorLoadingStops": "Erro ao carregar paragens",
   "errorLoadingTrack": "Erro ao carregar histórico de trajeto",
   "errorLoadingShapes": "Erro ao carregar rotas de carreira",
-  "noShapesFound": "Nenhuma rota de carreira encontrada"
+  "noShapesFound": "Nenhuma rota de carreira encontrada",
+  "stopId": "ID da Paragem",
+  "nextDepartures": "Próximas Partidas",
+  "loadingSchedule": "A carregar horários...",
+  "noDepartures": "Sem partidas previstas",
+  "noScheduleData": "Horário indisponível",
+  "now": "Agora"
 }
