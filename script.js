@@ -128,11 +128,10 @@ const socket = io(API_URL);
 // Initialize map centered on Lisbon (adjust coordinates as needed)
 const map = L.map('map').setView([38.7223, -9.1393], 12);
 
-// Add CartoDB Positron tiles (neutral, light gray map)
-// Add OpenStreetMap tiles
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 19
+// Add OSM Bright tiles via OpenFreeMap (free, open-source, no API key required)
+L.maplibreGL({
+    style: 'https://tiles.openfreemap.org/styles/bright',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | <a href="https://openfreemap.org">OpenFreeMap</a>'
 }).addTo(map);
 
 // Add click handler to map to reset everything
