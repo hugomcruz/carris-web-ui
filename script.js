@@ -128,10 +128,10 @@ const socket = io(API_URL);
 // Initialize map centered on Lisbon (adjust coordinates as needed)
 const map = L.map('map').setView([38.7223, -9.1393], 12);
 
-// Add OpenStreetMap tiles (free, open-source, no API key required)
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
+// Add OSM Bright tiles via OpenFreeMap (free, open-source, no API key required)
+L.maplibreGL({
+    style: 'https://tiles.openfreemap.org/styles/bright',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | <a href="https://openfreemap.org">OpenFreeMap</a>'
 }).addTo(map);
 
 // Add click handler to map to reset everything
