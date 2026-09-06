@@ -211,9 +211,9 @@ async function loadBusStops() {
             const marker = L.circleMarker([stop.lat, stop.lng], {
                 renderer: canvasRenderer,
                 radius: initialRadius,
-                fillColor: "#2DD4BF",
-                color: "#0F766E",
-                weight: 1.5,
+                fillColor: "#FFD700",
+                color: "#FF8C00",
+                weight: 1,
                 opacity: 1,
                 fillOpacity: 1
             });
@@ -1312,7 +1312,7 @@ routeFilterInput.addEventListener('input', async (e) => {
             const routeList = markerRoutes.split(',').map(r => r.trim());
             
             if (routeList.includes(filterRoute)) {
-                marker.setStyle({ color: '#0F766E', fillColor: '#2DD4BF', opacity: 1, fillOpacity: 1 });
+                marker.setStyle({ color: '#FF8C00', fillColor: '#FFD700', opacity: 1, fillOpacity: 1 });
             } else {
                 marker.setStyle({ color: '#888888', fillColor: '#888888', opacity: 0.5, fillOpacity: 0.5 });
             }
@@ -1352,7 +1352,7 @@ routeFilterInput.addEventListener('input', async (e) => {
     } else {
         // No filter - reset all stops to default yellow/gold color
         stopMarkers.eachLayer(marker => {
-            marker.setStyle({ color: '#0F766E', fillColor: '#2DD4BF', opacity: 1, fillOpacity: 1 });
+            marker.setStyle({ color: '#FF8C00', fillColor: '#FFD700', opacity: 1, fillOpacity: 1 });
         });
         
         // Remove filtered route shapes
@@ -1370,7 +1370,7 @@ clearFilterButton.addEventListener('click', () => {
     
     // Reset all stops to default yellow/gold color when filter is cleared
     stopMarkers.eachLayer(marker => {
-        marker.setStyle({ color: '#0F766E', fillColor: '#2DD4BF', opacity: 1, fillOpacity: 1 });
+        marker.setStyle({ color: '#FF8C00', fillColor: '#FFD700', opacity: 1, fillOpacity: 1 });
     });
     
     // Remove filtered route shapes
