@@ -1,6 +1,6 @@
 # Carris Frontend
 
-Frontend web application for the Carris Live bus tracking system. Provides an interactive map interface for real-time bus tracking in Lisbon.
+Frontend web application for the LisboaMove bus tracking system. Provides an interactive map interface for real-time bus tracking in Lisbon.
 
 ## Features
 
