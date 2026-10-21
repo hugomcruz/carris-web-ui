@@ -311,6 +311,33 @@
             border-color: #007bff;
         }
 
+        /* App Store download button */
+        .appstore-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            background: #000;
+            color: #fff;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .appstore-btn:hover {
+            background: #333;
+        }
+
+        .appstore-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
         /* Info icon styles */
         .info-icon {
             cursor: pointer;
@@ -327,6 +354,50 @@
 
         .info-icon:hover {
             opacity: 1;
+        }
+
+        /* iPhone App Store prompt */
+        .appstore-prompt {
+            text-align: center;
+            max-width: 340px;
+        }
+
+        .appstore-prompt h3 {
+            margin: 0 0 8px 0;
+            padding: 0 24px;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .appstore-prompt p {
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #555;
+        }
+
+        .appstore-prompt .appstore-btn {
+            font-size: 15px;
+            padding: 10px 20px;
+        }
+
+        .appstore-prompt .appstore-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .appstore-prompt .appstore-btn span {
+            display: inline;
+        }
+
+        .appstore-prompt-dismiss {
+            display: block;
+            margin: 14px auto 0;
+            background: none;
+            border: none;
+            color: #777;
+            font-size: 13px;
+            cursor: pointer;
         }
 
         /* Modal styles */
@@ -485,6 +556,14 @@
             .language-selector {
                 font-size: 13px;
                 padding: 4px 6px;
+            }
+
+            .appstore-btn {
+                padding: 4px 6px;
+            }
+
+            .appstore-btn span {
+                display: none;
             }
 
             .info-icon {
@@ -701,6 +780,10 @@
                 <input type="checkbox" id="toggle-stops" checked>
                 <span data-i18n="showStops">Show Stops</span>
             </label>
+            <a class="appstore-btn" id="appstore-btn" href="https://apps.apple.com/pt/app/lisboa-move/id6760208426" target="_blank" rel="noopener" data-i18n-title="downloadAppStore" title="Download on the App Store">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+                <span>App Store</span>
+            </a>
             <select id="language-selector" class="language-selector">
                 <option value="en">🇬🇧 EN</option>
                 <option value="pt" selected>🇵🇹 PT</option>
@@ -723,6 +806,20 @@
                 <p><strong data-i18n="infoModalContact">For any questions contact:</strong><br>
                 <a href="mailto:info@carris.live" style="color: #007bff; text-decoration: none;">info@carris.live</a></p>
             </div>
+        </div>
+    </div>
+
+    <!-- iPhone App Store prompt -->
+    <div class="modal-overlay" id="appstore-prompt">
+        <div class="modal-content appstore-prompt">
+            <button class="modal-close" id="appstore-prompt-close" aria-label="Close">×</button>
+            <h3 data-i18n="appStorePromptTitle">Get the LisboaMove app</h3>
+            <p data-i18n="appStorePromptText">Track Lisbon buses in real time with our free iPhone app.</p>
+            <a class="appstore-btn" id="appstore-prompt-link" href="https://apps.apple.com/pt/app/lisboa-move/id6760208426" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+                <span data-i18n="appStorePromptButton">Download on the App Store</span>
+            </a>
+            <button class="appstore-prompt-dismiss" id="appstore-prompt-dismiss" data-i18n="appStorePromptDismiss">Not now</button>
         </div>
     </div>
 

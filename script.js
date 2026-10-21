@@ -1411,6 +1411,36 @@ infoModal.addEventListener('click', (e) => {
     }
 });
 
+// iPhone App Store prompt
+(function initAppStorePrompt() {
+    const prompt = document.getElementById('appstore-prompt');
+    const STORAGE_KEY = 'appStorePromptDismissed';
+
+    // iPhone/iPod only (iOS Safari, Chrome and Firefox all include "iPhone" in the UA)
+    const isIPhone = /iPhone|iPod/.test(navigator.userAgent);
+    // Already running as an installed web app
+    const isStandalone = window.navigator.standalone === true;
+
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(STORAGE_KEY) === '1'; } catch (e) {}
+
+    function close() {
+        prompt.classList.remove('open');
+        try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {}
+    }
+
+    document.getElementById('appstore-prompt-close').addEventListener('click', close);
+    document.getElementById('appstore-prompt-dismiss').addEventListener('click', close);
+    document.getElementById('appstore-prompt-link').addEventListener('click', close);
+    prompt.addEventListener('click', (e) => {
+        if (e.target === prompt) close();
+    });
+
+    if (isIPhone && !isStandalone && !dismissed) {
+        setTimeout(() => prompt.classList.add('open'), 1500);
+    }
+})();
+
 // Language selector functionality
 const languageSelector = document.getElementById('language-selector');
 
